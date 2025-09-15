@@ -3,6 +3,7 @@
 
 import sys
 import numpy as np
+import symnmfmodule as sm  # required
 
 EPS = 1e-4
 MAX_ITER = 300
@@ -37,9 +38,6 @@ def main():
         k = int(sys.argv[1])
         goal = sys.argv[2]
         file_name = sys.argv[3]
-
-        import symnmfmodule as sm  # required
-
         X = read_points(file_name)
 
         if goal == "sym":
