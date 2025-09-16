@@ -14,6 +14,7 @@ static int as_2d_double(PyObject* obj, PyArrayObject** out, int* n, int* m) {
 }
 
 static PyObject* py_sym(PyObject* self, PyObject* args) {
+
     PyObject* Xobj;
     if (!PyArg_ParseTuple(args, "O", &Xobj)) return NULL;
 
@@ -89,6 +90,7 @@ error:
 }
 
 static PyObject* py_symnmf(PyObject* self, PyObject* args) {
+
     PyObject *H0obj, *Wobj;
     int k, max_iter;
     double eps, beta;
