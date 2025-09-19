@@ -143,7 +143,7 @@ static double frob_sq_diff(const double* A, const double* B, int n, int m) {
         double d = A[i] - B[i];
         s += d * d;
     }
-    return sqrt(s);
+    return s;
 }
 
 void symnmf_optimize(const double* W, int n, int k,
@@ -158,7 +158,7 @@ void symnmf_optimize(const double* W, int n, int k,
     double val;
     int it, i;
 
-    for (it = 0; it < max_iter; ++it) {
+    for (it = 0; it < max_iter; it++) {
         memcpy(Hprev, H, (size_t)n*k*sizeof(double));
         transpose(H, Ht, n, k);               /* H^T (k x n) */
         matmul(W, H, WH, n, n, k);               /* WH */
