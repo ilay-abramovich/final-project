@@ -90,36 +90,38 @@ error:
 }
 
 static PyObject* py_symnmf(PyObject* self, PyObject* args) {
-
-    PyObject *H0obj, *Wobj;
-    int k, max_iter;
+    PyObject *H0obj = NULL, *Wobj = NULL;
+    PyArrayObject *H0 = NULL, *W = NULL, *H = NULL;
+    int k, max_iter, n1, k1, n2, n2b;
     double eps, beta;
 
-    /* allow with or without beta; default 0.5 */
-    if (!PyArg_ParseTuple(args, "OOiddi", &H0obj, &Wobj, &k, &eps, &max_iter)) {
+    if (!PyArg_ParseTuple(args, "OOidi", &H0obj, &Wobj, &k, &eps, &max_iter)) {
         PyErr_Clear();
-        if (!PyArg_ParseTuple(args, "OOiddid", &H0obj, &Wobj, &k, &eps, &max_iter, &beta))
+        if (!PyArg_ParseTuple(args, "OOidid", &H0obj, &Wobj, &k, &eps, &max_iter, &beta))
             return NULL;
     } else {
         beta = 0.5;
     }
 
-    PyArrayObject *H0, *W; int n1, k1, n2, n2b;
     if (!as_2d_double(H0obj, &H0, &n1, &k1)) goto error;
-    if (!as_2d_double(Wobj, &W, &n2, &n2b)) { Py_DECREF(H0); goto error; }
-    if (n1 != n2 || n2 != n2b || k1 != k) { Py_DECREF(H0); Py_DECREF(W); goto error; }
+    if (!as_2d_double(Wobj, &W, &n2, &n2b)) goto error;
+    if (n1 != n2 || n2 != n2b || k1 != k) goto error;
 
     npy_intp dd[2] = {n1, k};
-    PyArrayObject* H = (PyArrayObject*)PyArray_SimpleNew(2, dd, NPY_DOUBLE);
-    if (!H) { Py_DECREF(H0); Py_DECREF(W); goto error; }
+    H = (PyArrayObject*)PyArray_SimpleNew(2, dd, NPY_DOUBLE);
+    if (!H) goto error;
 
     memcpy(PyArray_DATA(H), PyArray_DATA(H0), (size_t)n1 * k * sizeof(double));
     symnmf_optimize((const double*)PyArray_DATA(W), n1, k, max_iter, eps, beta, (double*)PyArray_DATA(H));
 
-    Py_DECREF(H0); Py_DECREF(W);
+    Py_DECREF(H0);
+    Py_DECREF(W);
     return (PyObject*)H;
 
 error:
+    if (H0) Py_DECREF(H0);
+    if (W) Py_DECREF(W);
+    if (H) Py_DECREF(H);
     PyErr_SetString(PyExc_RuntimeError, "An Error Has Occurred");
     return NULL;
 }
