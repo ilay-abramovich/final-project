@@ -5,7 +5,8 @@ import sys
 import numpy as np
 from sklearn.metrics import silhouette_score
 from sklearn.cluster import KMeans
-import symnmfmodule as sm
+from symnmf import *
+from kmeans import run_kmeans
 import numpy as np
 
 def init_H_from_W_mean(W: np.ndarray, k: int, seed: int = 1234) -> np.ndarray:
@@ -38,14 +39,11 @@ def main():
         X = read_points(file_name)
 
         # SymNMF
-        W = sm.norm(X)
-        H0 = init_H_from_W_mean(W, k, seed=1234)
-        H = sm.symnmf(H0, W, k, 1e-4, 300, 0.5)
+        H = run_symnmf(X, k)
         lbl_nmf = hard_labels(H)
 
         # KMeans
-        km = KMeans(n_clusters=k, n_init=10, random_state=1234)
-        lbl_km = km.fit_predict(X)
+        X, lbl_km = run_kmeans(X, k)
 
         s_nmf = silhouette_score(X, lbl_nmf)
         s_km = silhouette_score(X, lbl_km)
@@ -53,7 +51,8 @@ def main():
         print(f"nmf: {s_nmf:.4f}")
         print(f"kmeans: {s_km:.4f}")
 
-    except Exception:
+    except Exception as e:
+        print(e)
         print("An Error Has Occurred")
         sys.exit(1)
 

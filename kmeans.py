@@ -1,8 +1,7 @@
 import math
 import sys
 import argparse
-
-DEFAULT_ITER = 400
+from consts import *
 
 class centroid:
     def __init__(self, vector, points = set()):
@@ -39,11 +38,12 @@ class datapoint:
 
 def parse_input(vectors):
     vectors = [[float(d) for d in v.split(',')] for v in vectors]
-    all_points = [datapoint(v) for v in vectors]
-    return all_points
+    return make_datapoints(vectors)
 
+def make_datapoints(vectors):
+    return [datapoint(v) for v in vectors]
 
-def cluster(k, datapoints, iter, epsilon = 0.001):
+def do_cluster(k, datapoints, iter=DEFAULT_ITER, epsilon = EPS):
     centroids = [centroid(v.vector.copy(), set([])) for v in datapoints[:k]]
     below_threshold = True
     for i in range(iter):
@@ -57,6 +57,19 @@ def cluster(k, datapoints, iter, epsilon = 0.001):
         for c in centroids:
             c.update_vector()
     return centroids
+
+def run_kmeans(data, k, iter=DEFAULT_ITER, epsilon=EPS):
+    datapoints = make_datapoints(data)
+    clusters = do_cluster(k, datapoints, iter, epsilon)
+
+    # Build label mapping: centroid object -> index
+    centroid_index_map = {id(c): i for i, c in enumerate(clusters)}
+    
+    # Extract vectors and labels
+    X = [p.vector for p in datapoints]
+    labels = [centroid_index_map[id(p.centroid)] for p in datapoints]
+
+    return X, labels
 
 def main(k, data, iter='400'):
     if not(k.isdigit() and iter.isdigit()):
