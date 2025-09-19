@@ -4,11 +4,17 @@
 import sys
 import numpy as np
 import symnmfmodule as sm  # required
-
 EPS = 1e-4
 MAX_ITER = 300
 BETA = 0.5
 np.random.seed(1234)  # spec
+
+
+def init_H_from_W_mean(W: np.ndarray, k: int, seed: int = 1234) -> np.ndarray:
+    m = float(W.mean())
+    upper = 2.0 * np.sqrt(m / max(k, 1))
+    rng = np.random.default_rng(seed)
+    return rng.uniform(0.0, upper, size=(W.shape[0], k)).astype(np.float64)
 
 def print_matrix(M):
     rows = []
@@ -63,11 +69,11 @@ def main():
             print_matrix(W)
 
         elif goal == "symnmf":
-            np.random.seed(1234)  # spec
             W = sm.norm(X)
             H0 = init_H(W, k)
             H = sm.symnmf(H0, W, k, EPS, MAX_ITER, BETA)
             print_matrix(H)
+
 
         else:
             print("An Error Has Occurred")

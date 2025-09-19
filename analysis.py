@@ -6,6 +6,13 @@ import numpy as np
 from sklearn.metrics import silhouette_score
 from sklearn.cluster import KMeans
 import symnmfmodule as sm
+import numpy as np
+
+def init_H_from_W_mean(W: np.ndarray, k: int, seed: int = 1234) -> np.ndarray:
+    m = float(W.mean())
+    upper = 2.0 * np.sqrt(m / max(k, 1))
+    rng = np.random.default_rng(seed)
+    return rng.uniform(0.0, upper, size=(W.shape[0], k)).astype(np.float64)
 
 def read_points(path):
     X = []
@@ -32,10 +39,7 @@ def main():
 
         # SymNMF
         W = sm.norm(X)
-        m = float(W.mean())
-        upper = 2.0 * np.sqrt(m / max(k, 1))
-        rng = np.random.default_rng(1234)
-        H0 = rng.uniform(0.0, upper, size=(W.shape[0], k)).astype(np.float64)
+        H0 = init_H_from_W_mean(W, k, seed=1234)
         H = sm.symnmf(H0, W, k, 1e-4, 300, 0.5)
         lbl_nmf = hard_labels(H)
 
@@ -52,6 +56,7 @@ def main():
     except Exception:
         print("An Error Has Occurred")
         sys.exit(1)
+
 
 if __name__ == "__main__":
     main()
