@@ -126,6 +126,16 @@ static void matmul(const double* A, const double* B, double* C, int n, int m, in
     }
 }
 
+void transpose(double* A, double* B, int n, int k) {
+    int i, j;
+    for (i = 0; i < n; ++i) {
+        for (j = 0; j < k; ++j) {
+            B[j * n + i] = A[i * k + j];
+        }
+    }
+}
+
+
 static double frob_sq_diff(const double* A, const double* B, int n, int m) {
     double s = 0.0;
     int i;
@@ -133,7 +143,7 @@ static double frob_sq_diff(const double* A, const double* B, int n, int m) {
         double d = A[i] - B[i];
         s += d * d;
     }
-    return s;
+    return sqrt(s);
 }
 
 void symnmf_optimize(const double* W, int n, int k,
@@ -142,30 +152,31 @@ void symnmf_optimize(const double* W, int n, int k,
     double* WH   = (double*)malloc((size_t)n * k * sizeof(double));
     double* HHTH = (double*)malloc((size_t)n * k * sizeof(double));
     double* Hprev= (double*)malloc((size_t)n * k * sizeof(double));
-    double* HHt = (double*)malloc((size_t)n * n * sizeof(double));
+    double* HHt  = (double*)malloc((size_t)n * n * sizeof(double));
+    double* Ht  = (double*)malloc((size_t)n * n * sizeof(double));
     double ratio;
     double val;
-    int it;
-    int i;
+    int it, i;
+
     for (it = 0; it < max_iter; ++it) {
         memcpy(Hprev, H, (size_t)n*k*sizeof(double));
-
+        transpose(H, Ht, n, k);               /* H^T (k x n) */
         matmul(W, H, WH, n, n, k);               /* WH */
-        matmul(H, H, HHt, n, k, n);              /* H H^T (n x n) */
+        matmul(H, Ht, HHt, n, k, n);              /* H H^T (n x n) */
         matmul(HHt, H, HHTH, n, n, k);           /* (H H^T) H */
-        free(HHt);
 
         for (i = 0; i < n*k; ++i) {
             double denom = HHTH[i];
             if (denom == 0.0) denom = 1e-12;
             ratio = WH[i] / denom;
-            val = H[i] * (1.0 - beta + beta * ratio);
-            H[i] = (val > 0.0) ? val : 0.0;
+            val = H[i] * (1.0 - beta + (beta * ratio));
+            H[i] = val;
         }
 
         if (frob_sq_diff(H, Hprev, n, k) < eps) break;
     }
-    free(WH); free(HHTH); free(Hprev);
+
+    free(WH); free(HHTH); free(Hprev); free(HHt);
 }
 
 int count_columns(const char* line) {

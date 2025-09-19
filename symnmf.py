@@ -8,12 +8,22 @@ import symnmfmodule as sm  # required
 EPS = 1e-4
 MAX_ITER = 300
 BETA = 0.5
+np.random.seed(1234)  # spec
 
 def print_matrix(M):
     rows = []
     for r in M:
         rows.append(",".join(f"{x:.4f}" for x in r))
     print("\n".join(rows))
+
+def init_H(W, k):
+    n = W.shape[0]
+    m = W.mean()
+    upper = 2.0 * np.sqrt(m / max(k, 1))
+    rng = np.random
+    H0 = rng.uniform(0.0, upper, size=(n, k)).astype(np.float64)
+    return H0
+
 
 def read_points(path):
     try:
@@ -55,10 +65,7 @@ def main():
         elif goal == "symnmf":
             np.random.seed(1234)  # spec
             W = sm.norm(X)
-            m = float(W.mean())
-            upper = 2.0 * np.sqrt(m / max(k, 1))
-            rng = np.random.default_rng(1234)
-            H0 = rng.uniform(0.0, upper, size=(W.shape[0], k)).astype(np.float64)
+            H0 = init_H(W, k)
             H = sm.symnmf(H0, W, k, EPS, MAX_ITER, BETA)
             print_matrix(H)
 
@@ -66,7 +73,11 @@ def main():
             print("An Error Has Occurred")
             sys.exit(1)
 
-    except Exception:
+    except Exception as e:
+        print(e)
+        print("Loaded symnmfmodule from:", sm.__file__)
+        print("Function symnmf:", sm.symnmf)
+
         print("An Error Has Occurred")
         sys.exit(1)
 
