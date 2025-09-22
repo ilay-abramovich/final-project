@@ -236,8 +236,7 @@ double* read_matrix(char* path, int* k, int* n) {
         rows++; free(line); line = NULL; len = 0;
     }
     fclose(fp);
-    *n = rows;
-    *k = cols;
+    *n = rows; *k = cols;
     return X;
 }
 
@@ -274,9 +273,6 @@ int main(int argc, char* argv[]) {
     if (strcmp(goal, "norm") == 0){
         print_matrix(W, n, n);
     }
-    free(X);
-    free(A);
-    free(D);
-    free(W);
+    free(X); free(A); free(D); free(W);
     return 0;
 }
