@@ -2,19 +2,11 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include <limits.h>
 #include "symnmf.h"
 
-/*
-static double inline dot(const double* a, const double* b, int d) {
-    double s = 0.0;
-    int i;
-    for (i = 0; i < d; ++i) s += a[i] * b[i];
-    return s;
-}
-*/
 
 size_t _getline(char** lineptr, size_t* n, FILE* stream) {
+    /* Utility to read a line of characters from file, terminated by '\n' */
     char* buffer = NULL;
     size_t length = 0;
     int ch;
@@ -45,8 +37,19 @@ size_t _getline(char** lineptr, size_t* n, FILE* stream) {
     return length;
 }
 
+int count_columns(const char* line) {
+    /* Returns the number of columns in read matrix */
+    const char* p;
+    int count = 1;
+    for (p = line; *p; ++p) {
+        if (*p == ',') count++;
+    }
+    return count;
+}
 
 void compute_similarity(const double* X, int n, int d, double* A) {
+    /* Computes similarity matrix A (n*n) from X (n*k)
+    Assumes A is a pointer to a valid n*n array of doubles */
     int i;
     int j;
     int t;
@@ -69,6 +72,8 @@ void compute_similarity(const double* X, int n, int d, double* A) {
 }
 
 void compute_ddg(const double* A, int n, double* D) {
+    /* Computes diagonal degree matrix D from similarity matrix A
+    Assimes D is a valid pointer to an n*n array of doubles */
     int i;
     int j;
     for (i = 0; i < n*n; ++i) D[i] = 0.0;
@@ -80,6 +85,10 @@ void compute_ddg(const double* A, int n, double* D) {
 }
 
 void compute_norm(const double* A, const double* D, int n, double* W) {
+    /* Computes normalized similarity matrix W
+    D: diagonal degree matrix, n*n
+    A: similarity matrix, n*n
+    Assumes valid pointers to n*n arrays of doubles */
     int i;
     int j;
     double* s = (double*)malloc((size_t)n * sizeof(double));
@@ -95,25 +104,9 @@ void compute_norm(const double* A, const double* D, int n, double* W) {
     free(s);
 }
 
-void init_H_from_W_mean(const double* W, int n, int k, unsigned int seed, double* H) {
-    double mean = 0.0;
-    double upper;
-    unsigned int state;
-    double u;
-    int i;
-    for (i = 0; i < n*n; ++i) mean += W[i];
-    mean /= (double)(n*n);
-    upper = 2.0 * sqrt(mean / (k > 0 ? k : 1));
-    state = seed ? seed : 1234u;
-    for (i = 0; i < n*k; ++i) {
-        state = 1664525u * state + 1013904223u;
-        u = (state / (double)UINT_MAX);
-        H[i] = u * upper;
-        if (H[i] < 0.0) H[i] = 0.0;
-    }
-}
 
 static void matmul(const double* A, const double* B, double* C, int n, int m, int p) {
+    /* Utility for matrix multiplication */
     int i;
     int j;
     int t;
@@ -127,6 +120,8 @@ static void matmul(const double* A, const double* B, double* C, int n, int m, in
 }
 
 void transpose(double* A, double* B, int n, int k) {
+    /* Utility to transpose an n*k matrix A into k*n matrix B
+    Assumes valid pointers to both A and B */
     int i, j;
     for (i = 0; i < n; ++i) {
         for (j = 0; j < k; ++j) {
@@ -137,6 +132,7 @@ void transpose(double* A, double* B, int n, int k) {
 
 
 static double frob_sq_diff(const double* A, const double* B, int n, int m) {
+    /* Computes squared Frobenius norm */
     double s = 0.0;
     int i;
     for (i = 0; i < n*m; ++i) {
@@ -146,9 +142,8 @@ static double frob_sq_diff(const double* A, const double* B, int n, int m) {
     return s;
 }
 
-void symnmf_optimize(const double* W, int n, int k,
-                     int max_iter, double eps, double beta,
-                     double* H) {
+void symnmf_optimize(const double* W, int n, int k, int max_iter, double eps, double beta, double* H) {
+    /* Runs symnmf optimization until convergence (until max_iter iterations or difference from previous < eps)*/
     double* WH   = (double*)malloc((size_t)n * k * sizeof(double));
     double* HHTH = (double*)malloc((size_t)n * k * sizeof(double));
     double* Hprev= (double*)malloc((size_t)n * k * sizeof(double));
@@ -179,16 +174,9 @@ void symnmf_optimize(const double* W, int n, int k,
     free(WH); free(HHTH); free(Hprev); free(HHt);
 }
 
-int count_columns(const char* line) {
-    const char* p;
-    int count = 1;
-    for (p = line; *p; ++p) {
-        if (*p == ',') count++;
-    }
-    return count;
-}
 
 void print_matrix(double* M, int n, int k) {
+    /* Utility to pretty print an n*K matrix M */
     int i;
     int j;
     for (i = 0; i < n; i++) {
@@ -199,51 +187,47 @@ void print_matrix(double* M, int n, int k) {
     }
 }
 
+void read_error(double* X, double* temp, FILE* fp, char* line) {
+    /* To prevent code duplication while reading matrix */
+    printf("An Error Has Occured\n");
+    free(X);
+    free(temp);
+    free(line);
+    fclose(fp);
+    exit(1);
+}
 
 double* read_matrix(char* path, int* k, int* n) {
+    /* Reads matrix from file, updates matrix dimentions n and k
+    Assumes matrix is of doubles seperateed by commas */
     double* X = NULL;
     double* temp = NULL;
     int rows = 0;
     int cols = 0;
     int col;
-
     char* line = NULL;
     size_t len = 0;
     size_t read;
     char* token;
-
     FILE* fp = fopen(path, "r");
     if (!fp) {
-        printf("An Error Has Occurred at 208\n");
+        printf("An Error Has Occurred\n");
         exit(1);
     }
-
     while ((read = _getline(&line, &len, fp)) != 0) {
         line[strcspn(line, "\r\n")] = '\0';
-
         if (cols == 0) {
             cols = count_columns(line);
         }
-
         temp = realloc(X, (rows + 1) * cols * sizeof(double));
         if (!temp) {
-            printf("An Error Has Occurred at 221\n");
-            free(X);
-            free(line);
-            fclose(fp);
-            exit(1);
+            read_error(X, temp, fp, line);
         }
-
         X = temp;
-
         token = strtok(line, ",");
         for (col = 0; col < cols; col++) {
             if (!token) {
-                printf("An Error Has Occurred at 233\n");
-                free(X);
-                free(line);
-                fclose(fp);
-                exit(1);
+                read_error(X, temp, fp, line);
             }
             X[rows * cols + col] = strtod(token, NULL);
             token = strtok(NULL, ",");
@@ -251,10 +235,8 @@ double* read_matrix(char* path, int* k, int* n) {
 
         rows++;
     }
-
     free(line);
     fclose(fp);
-
     *n = rows;
     *k = cols;
     return X;
