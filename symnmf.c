@@ -16,6 +16,7 @@ size_t _getline(char** lineptr, size_t* n, FILE* stream) {
     while ((ch = fgetc(stream)) != EOF) {
         char* new_buffer = realloc(buffer, length + 2);
         if (!new_buffer) {
+            free(new_buffer);
             free(buffer);
             return 0;
         }
@@ -232,10 +233,8 @@ double* read_matrix(char* path, int* k, int* n) {
             X[rows * cols + col] = strtod(token, NULL);
             token = strtok(NULL, ",");
         }
-
-        rows++;
+        rows++; free(line); line = NULL; len = 0;
     }
-    free(line);
     fclose(fp);
     *n = rows;
     *k = cols;

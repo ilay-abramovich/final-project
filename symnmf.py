@@ -5,12 +5,18 @@ import symnmfmodule as sm  # required
 from consts import *
 
 def print_matrix(M):
+    """
+    Utility function to print a matrix with 4 decimal places.
+    """
     rows = []
     for r in M:
         rows.append(",".join(f"{x:.4f}" for x in r))
     print("\n".join(rows))
 
 def init_H(W, k):
+    """
+    Initialize H0 from W mean as described in the assignment.
+    """
     np.random.seed(SEED)
     n = W.shape[0]
     m = W.mean()
@@ -33,6 +39,9 @@ def read_points(path):
         sys.exit(1)
 
 def run_symnmf(X, k):
+    """
+    Wrapper for symnmf function from the C extension.
+    """
     W = sm.norm(X)
     H0 = init_H(W, k)
     H = sm.symnmf(H0, W, k, EPS, DEFAULT_ITER, BETA)
