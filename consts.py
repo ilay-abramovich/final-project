@@ -2,3 +2,4 @@ DEFAULT_ITER = 400
 EPS = 1e-4
 BETA = 0.5
 SEED = 1234
+ERROR_MESSAGE = "An Error Has Occurred"
