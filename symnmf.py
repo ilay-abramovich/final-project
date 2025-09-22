@@ -4,10 +4,7 @@
 import sys
 import numpy as np
 import symnmfmodule as sm  # required
-EPS = 1e-4
-MAX_ITER = 300
-BETA = 0.5
-np.random.seed(1234)
+from consts import *
 
 def print_matrix(M):
     rows = []
@@ -16,6 +13,7 @@ def print_matrix(M):
     print("\n".join(rows))
 
 def init_H(W, k):
+    np.random.seed(SEED)
     n = W.shape[0]
     m = W.mean()
     upper = 2.0 * np.sqrt(m / max(k, 1))
@@ -37,41 +35,44 @@ def read_points(path):
         print("An Error Has Occurred")
         sys.exit(1)
 
+def run_symnmf(X, k):
+    W = sm.norm(X)
+    H0 = init_H(W, k)
+    H = sm.symnmf(H0, W, k, EPS, DEFAULT_ITER, BETA)
+    return H
+
 def main():
     if len(sys.argv) != 4:
         print("An Error Has Occurred")
         sys.exit(1)
-
     try:
         k = int(sys.argv[1])
         goal = sys.argv[2]
         file_name = sys.argv[3]
         X = read_points(file_name)
+        match goal:
+            case "sym":
+                A = sm.sym(X)
+                print_matrix(A)
 
-        if goal == "sym":
-            A = sm.sym(X)
-            print_matrix(A)
+            case "ddg":
+                D = sm.ddg(X)
+                print_matrix(D)
 
-        elif goal == "ddg":
-            D = sm.ddg(X)
-            print_matrix(D)
+            case "norm":
+                W = sm.norm(X)
+                print_matrix(W)
 
-        elif goal == "norm":
-            W = sm.norm(X)
-            print_matrix(W)
+            case "symnmf":
+                H = run_symnmf(X, k)
+                print_matrix(H)
 
-        elif goal == "symnmf":
-            W = sm.norm(X)
-            H0 = init_H(W, k)
-            H = sm.symnmf(H0, W, k, EPS, MAX_ITER, BETA)
-            print_matrix(H)
-
-
-        else:
-            print("An Error Has Occurred")
-            sys.exit(1)
+            case _:
+                print("An Error Has Occurred")
+                sys.exit(1)
 
     except Exception as e:
+        print(e)
         print("An Error Has Occurred")
         sys.exit(1)
 
