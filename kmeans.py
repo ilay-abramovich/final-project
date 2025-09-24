@@ -31,7 +31,7 @@ class datapoint:
 
     def distance(self, other):
         if len(other.vector) != len(self.vector):
-            print("Unequal vector lengths")
+            print("An Error Has Occurred")
             return -1
         else:
             return math.sqrt(sum([(self.vector[i] - other.vector[i]) ** 2 for i in range(self.dimention)]))
@@ -44,6 +44,9 @@ def make_datapoints(vectors):
     return [datapoint(v) for v in vectors]
 
 def do_cluster(k, datapoints, iter=DEFAULT_ITER, epsilon = EPS):
+    """
+    Perform k-means clustering on the given datapoints, return centroid objects.
+    """
     centroids = [centroid(v.vector.copy(), set([])) for v in datapoints[:k]]
     below_threshold = True
     for i in range(iter):
@@ -59,6 +62,9 @@ def do_cluster(k, datapoints, iter=DEFAULT_ITER, epsilon = EPS):
     return centroids
 
 def run_kmeans(data, k, iter=DEFAULT_ITER, epsilon=EPS):
+    """
+    Wrapper for k-means clustering, returns a list of vectors and their corresponding labels.
+    """
     datapoints = make_datapoints(data)
     clusters = do_cluster(k, datapoints, iter, epsilon)
 
@@ -71,7 +77,11 @@ def run_kmeans(data, k, iter=DEFAULT_ITER, epsilon=EPS):
 
     return X, labels
 
-def main(k, data, iter='400'):
+def main(k, data, iter=DEFAULT_ITER):
+    """
+    Main function to read input, perform k-means clustering, and print results.
+    Exactly the same main from hw1
+    """
     if not(k.isdigit() and iter.isdigit()):
         print(k)
         print("Invalid input")
@@ -91,6 +101,9 @@ def main(k, data, iter='400'):
     return
 
 if __name__ == '__main__':
+    """
+    Main for hw1
+    """
     data = sys.stdin.readlines()
     if len(sys.argv) < 3:
         main(sys.argv[1], data)
