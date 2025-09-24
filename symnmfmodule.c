@@ -108,58 +108,37 @@ error:
     return NULL;
 }
 
-/* names as required:
-  H = symnmf(H0, W, k, eps, max_iter[, beta])
-  - H0: (n x k) initial matrix
-  - W : (n x n) symmetric similarity/affinity
-  - k : number of clusters (columns of H)
-  - eps: convergence tolerance
-  - max_iter: cap on iterations
-  - beta: optional momentum/relaxation term (default 0.5)
-  Returns H (n x k). We copy H0 into H and then optimize H in-place.
-*/
+/* symnmf(H0,W,k,eps,max_iter[,beta]) -> H (n×k).
+   H0:(n×k), W:(n×n). beta=0.5 if missing. */
 static PyObject* py_symnmf(PyObject* self, PyObject* args) {
-    PyObject *H0obj = NULL, *Wobj = NULL;
-    PyArrayObject *H0 = NULL, *W = NULL, *H = NULL;
+    PyObject *H0obj=NULL, *Wobj=NULL;
+    PyArrayObject *H0=NULL, *W=NULL, *H=NULL;
     int k, max_iter, n1, k1, n2, n2b;
     double eps, beta;
-
-    /*Support two signatures: without beta -> beta=0.5, or with explicit beta */
-    if (!PyArg_ParseTuple(args, "OOidi", &H0obj, &Wobj, &k, &eps, &max_iter)) {
+    if (!PyArg_ParseTuple(args,"OOidi",&H0obj,&Wobj,&k,&eps,&max_iter)) {
         PyErr_Clear();
-        if (!PyArg_ParseTuple(args, "OOidid", &H0obj, &Wobj, &k, &eps, &max_iter, &beta))
+        if (!PyArg_ParseTuple(args,"OOidid",&H0obj,&Wobj,&k,&eps,&max_iter,&beta))
             return NULL;
-    } else {
-        beta = 0.5;
-    }
-
-    /*Type/shape checks */
-    if (!as_2d_double(H0obj, &H0, &n1, &k1)) goto error;
-    if (!as_2d_double(Wobj,  &W,  &n2, &n2b)) goto error;
-    if (n1 != n2 || n2 != n2b || k1 != k) goto error;  // shapes must match
-
-    /*Allocates H (n x k) and copy H0 into it */
+    } else beta = 0.5;
+    if (!as_2d_double(H0obj,&H0,&n1,&k1)) goto error;
+    if (!as_2d_double(Wobj,&W,&n2,&n2b)) goto error;
+    if (n1!=n2 || n2!=n2b || k1!=k) goto error;
     npy_intp dd[2] = { (npy_intp)n1, (npy_intp)k };
     H = (PyArrayObject*)PyArray_SimpleNew(2, dd, NPY_DOUBLE);
     if (!H) goto error;
-
-    memcpy(PyArray_DATA(H), PyArray_DATA(H0), (size_t)n1 * (size_t)k * sizeof(double));
-
-    // Run the optimizer which updates H in-place
+    memcpy(PyArray_DATA(H), PyArray_DATA(H0), (size_t)n1*(size_t)k*sizeof(double));
     symnmf_optimize((const double*)PyArray_DATA(W), n1, k, max_iter, eps, beta,
                     (double*)PyArray_DATA(H));
-
-    Py_DECREF(H0);
-    Py_DECREF(W);
+    Py_DECREF(H0); Py_DECREF(W);
     return (PyObject*)H;
-
 error:
     if (H0) Py_DECREF(H0);
     if (W)  Py_DECREF(W);
     if (H)  Py_DECREF(H);
-    PyErr_SetString(PyExc_RuntimeError, "An Error Has Occurred");
+    PyErr_SetString(PyExc_RuntimeError,"An Error Has Occurred");
     return NULL;
 }
+
 
 /* Python method table: names visible from Python and their docstrings */
 static PyMethodDef Methods[] = {
